@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f172a">
+<title>Titan App - Treino Local</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    :root {
+        --primary: #3b82f6; --bg: #0f172a; --surface: #1e293b; --border: #334155;
+        --text: #f8fafc; --muted: #94a3b8; --success: #10b981; --danger: #ef4444;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; user-select: none; }
+    body { margin: 0; padding: 0; background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; padding-bottom: 140px; }
+
+    .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.1s; text-transform: uppercase; letter-spacing: 0.5px; }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .input-field { width: 100%; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: white; margin-bottom: 15px; font-size: 1rem; }
+
+    /* SETUP SCREEN (Antigo Login) */
+    #setup-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 25px; transition: 0.3s; }
+    .setup-card { width: 100%; max-width: 400px; text-align: center; }
+
+    .app-header { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; }
+    .xp-bar { height: 6px; background: #020617; border-radius: 3px; margin-top: 10px; overflow: hidden; }
+    .xp-fill { height: 100%; background: #facc15; width: 0%; transition: width 0.5s; }
+
+    .view { display: none; padding: 20px; animation: fadeIn 0.3s; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .card { background: var(--surface); border-radius: 16px; border: 1px solid var(--border); overflow: hidden; margin-bottom: 15px; }
+    .w-header { padding: 18px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: linear-gradient(to bottom, #1e293b, #161e2e); }
+    .w-body { display: none; background: #0b1120; border-top: 1px solid var(--border); }
+    .card.open .w-body { display: block; }
+
+    .ex-item { display: flex; padding: 15px; border-bottom: 1px solid var(--border); gap: 15px; }
+    .ex-img-container { width: 80px; height: 80px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #000; border: 1px solid var(--border); }
+    .ex-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+    .ex-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .ex-name { font-weight: 700; font-size: 0.95rem; color: #fff; margin-bottom: 4px; line-height: 1.2; }
+
+    .mini-input-group { background: #1e293b; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; gap: 5px; }
+    .mini-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; font-weight: bold; }
+    .mini-input { width: 35px; background: transparent; border: none; color: white; font-weight: bold; text-align: center; font-size: 0.9rem; padding: 0; }
+
+    .check-circle { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: 0.2s; }
+    .check-circle.checked { background: var(--success); border-color: var(--success); color: #064e3b; }
+    .timer-btn { width: 40px; height: 40px; border-radius: 50%; background: #334155; color: white; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; }
+
+    .timer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 70px; background: rgba(15, 23, 42, 0.95); border-bottom: 1px solid var(--primary); z-index: 2000; display: none; align-items: center; justify-content: space-between; padding: 0 20px; backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .timer-display { font-family: monospace; font-size: 1.8rem; font-weight: bold; color: var(--primary); }
+    .timer-controls { display: flex; gap: 10px; }
+
+    .bmi-card { text-align: center; padding: 25px; background: var(--surface); border-radius: 20px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .chart-box { background: var(--surface); padding: 15px; border-radius: 16px; border: 1px solid var(--border); height: 250px; margin-bottom: 80px; }
+    .fixed-input-bar { position: fixed; bottom: 80px; left: 0; width: 100%; background: rgba(15, 23, 42, 0.98); border-top: 1px solid var(--border); padding: 15px 20px; display: flex; gap: 10px; z-index: 40; backdrop-filter: blur(5px); }
+
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: none; flex-direction: column; }
+    .modal-header { padding: 15px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .search-input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid var(--border); color: white; border-radius: 8px; font-size: 1rem; }
+    .builder-list { flex: 1; overflow-y: auto; padding: 0 15px 20px 15px; }
+    .cat-title { margin: 25px 0 10px 0; color: var(--primary); font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
+
+    .select-row { display: flex; align-items: center; padding: 12px; background: var(--surface); margin-bottom: 10px; border-radius: 12px; cursor: pointer; border: 2px solid transparent; }
+    .select-row.active-selection { border-color: var(--primary); background: rgba(59, 130, 246, 0.15); }
+    .select-thumb { width: 50px; height: 50px; border-radius: 8px; background: #000; margin-right: 15px; object-fit: cover; }
+    .select-check { margin-left: auto; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--muted); display: flex; align-items: center; justify-content: center; }
+
+    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 75px; background: rgba(30, 41, 59, 0.98); backdrop-filter: blur(10px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; z-index: 500; }
+    .nav-item { color: var(--muted); display: flex; flex-direction: column; align-items: center; font-size: 0.7rem; font-weight: 600; padding: 10px; width: 33%; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item i { font-size: 1.4rem; margin-bottom: 4px; }
+    .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div id="timerOverlay" class="timer-overlay">
+    <div style="display:flex; align-items:center; gap:15px;">
+        <i class="fa-regular fa-clock" style="color:white;"></i>
+        <span id="timerDisplay" class="timer-display">00:00</span>
+    </div>
+    <div class="timer-controls">
+        <button onclick="adjustTimer(-10)" style="padding:8px 12px; background:#334155; border:none; color:white; border-radius:8px;">-10</button>
+        <button onclick="adjustTimer(+10)" style="padding:8px 12px; background:#334155; border:none; color:white; border-radius:8px;">+10</button>
+        <button onclick="stopTimer()" style="padding:8px 12px; background:rgba(239, 68, 68, 0.2); border:none; color:var(--danger); border-radius:8px;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+</div>
+
+<div id="setup-screen">
+    <div class="setup-card">
+        <i class="fa-solid fa-dumbbell" style="font-size:3rem; color:var(--primary); margin-bottom:15px;"></i>
+        <h1 style="margin:0;">TITAN APP</h1>
+        <p style="color:var(--muted); margin-bottom:30px;">Inicie sua jornada fitness offline</p>
+        <input type="text" id="setup_name" class="input-field" placeholder="Como quer ser chamado?">
+        <input type="number" id="setup_height" class="input-field" placeholder="Sua altura (cm)">
+        <button class="btn btn-primary" onclick="initApp()">ACESSAR PAINEL</button>
+        <p style="font-size:0.7rem; color:var(--muted); margin-top:15px;">Seus dados são salvos apenas neste navegador.</p>
+    </div>
+</div>
+
+<div id="app-content" class="hidden">
+    <header class="app-header">
+        <div class="header-content">
+            <div><div style="font-weight:800; font-size:1.1rem;" id="nameDisplay">User</div><div style="font-size:0.8rem; color:var(--muted);">Nível <span id="levelDisplay" style="color:var(--primary)">1</span></div></div>
+            <div style="font-size:0.8rem; font-weight:bold; color:#facc15;" id="xpDisplay">0 XP</div>
+        </div>
+        <div class="xp-bar"><div class="xp-fill" id="xpBar"></div></div>
+    </header>
+
+    <div id="view-home" class="view active">
+        <button class="btn btn-primary" style="margin-bottom:20px;" onclick="openBuilder()">
+            <i class="fa-solid fa-plus"></i> NOVA FICHA
+        </button>
+        <div id="workoutList"></div>
+        <div id="emptyState" style="text-align:center; padding:40px; color:var(--muted);">Nenhuma ficha encontrada.</div>
+    </div>
+
+    <div id="view-bio" class="view">
+        <div class="bmi-card">
+            <div style="font-size:0.8rem; text-transform:uppercase; color:var(--muted);">IMC ESTIMADO</div>
+            <div style="font-size:3rem; font-weight:800; color:var(--primary);" id="bmiValue">--</div>
+            <div style="font-size:1rem; font-weight:bold; color:var(--success);" id="bmiStatus">Calculando...</div>
+        </div>
+        <div class="chart-box"><canvas id="weightChart"></canvas></div>
+        <div class="fixed-input-bar">
+            <input type="number" id="weightInput" class="input-field" placeholder="Peso (Kg)" style="margin:0; flex:1; background:#020617;">
+            <button class="btn btn-primary" style="width:auto; padding:0 25px;" onclick="addWeight()"><i class="fa-solid fa-check"></i></button>
+        </div>
+    </div>
+
+    <div id="view-config" class="view">
+        <div class="card" style="padding:20px; text-align:center;">
+             <p style="color:var(--muted);">Os dados são armazenados localmente e serão perdidos se você limpar o cache do navegador.</p>
+             <button class="btn" style="border:1px solid var(--danger); color:var(--danger); background:none;" onclick="resetAppData()">LIMPAR TUDO / SAIR</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchView('home', this)"><i class="fa-solid fa-dumbbell"></i><span>Treinos</span></div>
+        <div class="nav-item" onclick="switchView('bio', this)"><i class="fa-solid fa-heart-pulse"></i><span>Bio</span></div>
+        <div class="nav-item" onclick="switchView('config', this)"><i class="fa-solid fa-gear"></i><span>Ajustes</span></div>
+    </nav>
+</div>
+
+<div id="builderModal" class="modal-overlay">
+    <div class="modal-header">
+        <button onclick="closeBuilder()" style="background:none; border:none; color:white;"><i class="fa-solid fa-arrow-left fa-lg"></i></button>
+        <span style="font-weight:bold;">Montar Ficha</span>
+        <button id="saveBtn" onclick="saveBuilder()" style="background:none; border:none; color:var(--primary); font-weight:bold;">SALVAR (0)</button>
+    </div>
+    <div style="padding:15px; background:var(--surface);">
+        <input type="text" id="buildName" class="input-field" placeholder="Ex: Treino A - Superior" style="margin-bottom:10px; background:#0f172a;">
+        <input type="text" id="searchBox" class="search-input" placeholder="🔍 Buscar exercício..." onkeyup="filterBuilder()">
+    </div>
+    <div class="builder-list" id="builderList"></div>
+</div>
+
+<script>
+    const DB_MASTER = {
+        "Peito": ["Supino Reto", "Supino Inclinado", "Crucifixo", "Peck Deck", "Crossover", "Flexão"],
+        "Costas": ["Puxada Alta", "Remada Baixa", "Remada Curvada", "Barra Fixa", "Serrote", "Pulldown"],
+        "Pernas": ["Agachamento Livre", "Leg Press 45", "Extensora", "Flexora", "Stiff", "Panturrilha"],
+        "Ombros": ["Desenvolvimento", "Elevação Lateral", "Elevação Frontal", "Crucifixo Inverso"],
+        "Braços": ["Rosca Direta", "Rosca Martelo", "Rosca Scott", "Tríceps Corda", "Tríceps Testa", "Tríceps Banco"],
+        "Cardio": ["Esteira", "Bike", "Elíptico", "Pular Corda"]
+    };
+
+    let user = { name:"", height:0, level:1, xp:0, nextXp:100, workouts:[], weights:[] };
+    let tempSelected = [];
+    let chartInstance = null;
+    let timerInterval = null;
+    let timeLeft = 0;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    window.onload = () => {
+        const saved = localStorage.getItem('_titan_local_db_');
+        if(saved) {
+            user = JSON.parse(saved);
+            if(user.name) startMainApp();
+        }
+    };
+
+    function initApp() {
+        const n = document.getElementById('setup_name').value;
+        const h = document.getElementById('setup_height').value;
+        if(!n || !h) return alert("Por favor, preencha seu nome e altura.");
+        user.name = n; user.height = parseInt(h);
+        saveToLocal(); startMainApp();
+    }
+
+    function startMainApp() {
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        updateHeader(); renderWorkouts();
+    }
+
+    function switchView(v, btn) {
+        document.querySelectorAll('.view').forEach(e=>e.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+        document.getElementById('view-'+v).classList.add('active');
+        btn.classList.add('active');
+        if(v === 'bio') setTimeout(renderBio, 100);
+    }
+
+    function renderWorkouts() {
+        const list = document.getElementById('workoutList');
+        list.innerHTML = "";
+        if(user.workouts.length === 0) { document.getElementById('emptyState').style.display='block'; return; }
+        document.getElementById('emptyState').style.display='none';
+
+        user.workouts.forEach(w => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.innerHTML = `
+                <div class="w-header" onclick="this.parentElement.classList.toggle('open')">
+                    <div>
+                        <div style="font-weight:bold; font-size:1.1rem; color:white;">${w.name}</div>
+                        <div style="font-size:0.8rem; color:var(--muted);">${w.exs.length} Exercícios</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-down"></i>
+                </div>
+                <div class="w-body">
+                    ${w.exs.map((ex, i) => `
+                        <div class="ex-item">
+                            <div class="ex-content">
+                                <span class="ex-name" style="${ex.checked?'text-decoration:line-through; color:gray':''}">${ex.n}</span>
+                                <div class="mini-input-group" style="margin-top:8px;">
+                                    <span class="mini-label">S</span><input type="number" class="mini-input" value="${ex.s}" oninput="updateEx(${w.id},${i},'s',this.value)">
+                                    <span class="mini-label">R</span><input type="number" class="mini-input" value="${ex.r}" oninput="updateEx(${w.id},${i},'r',this.value)">
+                                    <span class="mini-label">KG</span><input type="text" class="mini-input" value="${ex.k||''}" oninput="updateEx(${w.id},${i},'k',this.value)">
+                                </div>
+                            </div>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <div class="timer-btn" onclick="startTimer(60)"><i class="fa-regular fa-clock"></i></div>
+                                <div class="check-circle ${ex.checked?'checked':''}" onclick="toggleCheck(${w.id}, ${i})">
+                                    <i class="fa-solid fa-check" style="display:${ex.checked?'block':'none'}"></i>
+                                </div>
+                            </div>
+                        </div>`).join('')}
+                    <div style="padding:15px; display:flex; gap:10px;">
+                        <button class="btn btn-primary" onclick="finishWorkout(${w.id})">FINALIZAR</button>
+                        <button class="btn btn-outline" style="width:50px; color:var(--danger);" onclick="deleteWorkout(${w.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>`;
+            list.appendChild(el);
+        });
+    }
+
+    function toggleCheck(wid, idx) {
+        const w = user.workouts.find(i=>i.id===wid);
+        w.exs[idx].checked = !w.exs[idx].checked;
+        saveToLocal(); renderWorkouts();
+    }
+
+    function updateEx(wid, idx, key, val) {
+        const w = user.workouts.find(i=>i.id===wid);
+        w.exs[idx][key] = val;
+        saveToLocal();
+    }
+
+    function finishWorkout(wid) {
+        user.xp += 50;
+        if(user.xp >= user.nextXp) {
+            user.xp -= user.nextXp;
+            user.level++;
+            user.nextXp = Math.floor(user.nextXp * 1.2);
+        }
+        const w = user.workouts.find(i=>i.id===wid);
+        w.exs.forEach(e => e.checked = false);
+        saveToLocal(); updateHeader(); renderWorkouts();
+        alert("Treino concluído! +50 XP");
+    }
+
+    function deleteWorkout(wid) {
+        if(confirm("Excluir ficha?")) {
+            user.workouts = user.workouts.filter(i=>i.id!==wid);
+            saveToLocal(); renderWorkouts();
+        }
+    }
+
+    function updateHeader() {
+        document.getElementById('nameDisplay').innerText = user.name;
+        document.getElementById('levelDisplay').innerText = user.level;
+        document.getElementById('xpDisplay').innerText = `${user.xp}/${user.nextXp} XP`;
+        document.getElementById('xpBar').style.width = (user.xp/user.nextXp*100)+"%";
+    }
+
+    // BIO & CHART
+    function renderBio() {
+        if(user.height && user.weights.length > 0) {
+            const w = parseFloat(user.weights[user.weights.length-1].v);
+            const h = user.height / 100;
+            const bmi = (w / (h*h)).toFixed(1);
+            document.getElementById('bmiValue').innerText = bmi;
+            document.getElementById('bmiStatus').innerText = bmi > 25 ? "Sobrepeso" : "Normal";
+        }
+        const ctx = document.getElementById('weightChart').getContext('2d');
+        if(chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: { labels: user.weights.map(i=>i.d), datasets: [{ label:'Kg', data:user.weights.map(i=>i.v), borderColor:'#3b82f6', tension:0.3 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins:{legend:{display:false}} }
+        });
+    }
+
+    function addWeight() {
+        const v = document.getElementById('weightInput').value;
+        if(v) {
+            user.weights.push({d: new Date().toLocaleDateString().slice(0,5), v:v});
+            saveToLocal(); renderBio(); document.getElementById('weightInput').value="";
+        }
+    }
+
+    // BUILDER
+    function openBuilder() {
+        document.getElementById('builderModal').style.display='flex';
+        renderBuilderList();
+    }
+    function closeBuilder() { document.getElementById('builderModal').style.display='none'; tempSelected=[]; }
+    function renderBuilderList(f="") {
+        const list = document.getElementById('builderList'); list.innerHTML = "";
+        for (const [cat, items] of Object.entries(DB_MASTER)) {
+            const filtered = items.filter(i => i.toLowerCase().includes(f.toLowerCase()));
+            if(filtered.length > 0) {
+                const t = document.createElement('div'); t.className = 'cat-title'; t.innerText = cat; list.appendChild(t);
+                filtered.forEach(ex => {
+                    const isSel = tempSelected.includes(ex);
+                    const d = document.createElement('div'); d.className = `select-row ${isSel?'active-selection':''}`;
+                    d.innerHTML = `<span style="flex:1;">${ex}</span><div class="select-check" style="${isSel?'background:var(--primary); border-color:var(--primary)':''}"></div>`;
+                    d.onclick = () => {
+                        if(tempSelected.includes(ex)) tempSelected = tempSelected.filter(i=>i!==ex);
+                        else tempSelected.push(ex);
+                        document.getElementById('saveBtn').innerText = `SALVAR (${tempSelected.length})`;
+                        renderBuilderList(f);
+                    };
+                    list.appendChild(d);
+                });
+            }
+        }
+    }
+    function filterBuilder() { renderBuilderList(document.getElementById('searchBox').value); }
+    function saveBuilder() {
+        const n = document.getElementById('buildName').value || "Meu Treino";
+        if(tempSelected.length === 0) return;
+        user.workouts.push({ id: Date.now(), name: n, exs: tempSelected.map(ex => ({n:ex, s:3, r:10, k:'', checked:false})) });
+        saveToLocal(); renderWorkouts(); closeBuilder();
+    }
+
+    // TIMER
+    function startTimer(s) {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        timeLeft = s; document.getElementById('timerOverlay').style.display = 'flex';
+        if(timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--; updateTimerDisplay();
+            if(timeLeft <= 0) { clearInterval(timerInterval); playBeep(); }
+        }, 1000);
+        updateTimerDisplay();
+    }
+    function updateTimerDisplay() {
+        const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+        const s = (timeLeft % 60).toString().padStart(2, '0');
+        document.getElementById('timerDisplay').innerText = `${m}:${s}`;
+    }
+    function adjustTimer(s) { timeLeft += s; if(timeLeft<0) timeLeft=0; updateTimerDisplay(); }
+    function stopTimer() { clearInterval(timerInterval); document.getElementById('timerOverlay').style.display = 'none'; }
+    function playBeep() {
+        const osc = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        osc.connect(g); g.connect(audioCtx.destination); osc.frequency.value = 800; g.gain.value = 0.1;
+        osc.start(); setTimeout(() => osc.stop(), 300);
+    }
+
+    function saveToLocal() { localStorage.setItem('_titan_local_db_', JSON.stringify(user)); }
+    function resetAppData() { if(confirm("Apagar todos os dados?")) { localStorage.clear(); location.reload(); } }
+</script>
+</body>
+</html>
